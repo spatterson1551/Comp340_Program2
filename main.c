@@ -103,6 +103,8 @@ int main() {
 		priority_non(rootProcess, quantum);
 	} else if (strcmp(policy, "priority") == 0) {
 		priority(rootProcess, quantum);
+	} else {
+		printf("The schedule policy in the input file is invalid\n");
 	}
 	
 	return 0;
