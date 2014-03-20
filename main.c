@@ -11,11 +11,25 @@ struct Process {
 	struct Process *next;
 };
 
+int totalTime(struct Process* root) {
+	
+	struct Process* current;
+	int total = 0;
+	current = root;
+	while (current != 0) {
+		total += current->duration;
+		current = current->next;
+	}
+	
+	return total;
+}
+
 void fcfs(struct Process* root, int quantum) {
 	
 	//set up pointer to traverse list
 	struct Process* current;
 	current = root;
+	
 }
 void rr(struct Process* root, int quantum) {
 	
