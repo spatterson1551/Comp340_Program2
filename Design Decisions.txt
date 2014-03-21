@@ -1,0 +1,10 @@
+/*
+  Authors: Ethan Johnson, Steve Patterson
+  Course:  COMP 340, Operating Systems
+  Date:    21 March 2014
+  Description:	 Design decisions document
+*/
+
+Throughout our program, we used structures based on linked lists to manage information about processes and scheduling time slots. We chose to use this strategy because it seems to show up frequently in "real-world" operating system implementations of similar data structures. It proved to be quite effective for this purpose, and much easier to work with than trying to use dynamic arrays to store this information.
+
+The implementations of FCFS and both priority scheduling schemes were fairly straightforward, once we got the hang of dealing with the linked-list structures and had carefully thought through the logic involved; however, the round-robin scheme proved a bit trickier than we'd initially thought. We ended up implementing it in a manner somewhat different from the others, by fully simulating a ready queue as would be used in a live scheduler. Since the round-robin scheme is integrally tied to the concept of a ready queue, this ended up being the most effective (perhaps the only) way to accurately recreate the behavior of a real round-robin scheduler.
