@@ -1,3 +1,12 @@
+/*
+  Authors: Ethan Johnson, Steve Patterson
+  Course:  COMP 340, Operating Systems
+  Date:    21 March 2014
+  Description:	 Scheduling simulator functions for Program 2
+  Compile with:  make
+  Run with:      ./scheduler
+*/
+
 #pragma once
 
 #include <stdio.h>

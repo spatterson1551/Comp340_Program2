@@ -1,3 +1,12 @@
+/*
+  Authors: Ethan Johnson, Steve Patterson
+  Course:  COMP 340, Operating Systems
+  Date:    21 March 2014
+  Description:	 Main driver functionality for Program 2
+  Compile with:  make
+  Run with:      ./scheduler
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
