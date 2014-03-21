@@ -42,7 +42,7 @@ int totalTime(struct cpuSlot* root) {
 	return total;
 }
 
-struct cpuSlot* fcfs(struct Process* root, int quantum) {
+struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	
 	//set up pointer to traverse list
 	struct Process* current;
@@ -124,16 +124,24 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 
 	// TODO: deallocate Process_sort list
 	
+
 	// The processes are now sorted; proceed with scheduling.
 	current = root;
-
+	
 	// set the root
 	currentSlot->procId = current->id;
-	currentSlot->startTime = prevStart + prevDuration;
+	if ((prevStart + prevDuration) < current->arrive) {
+		currentSlot->startTime = current->arrive;
+	} else {
+		currentSlot->startTime = prevStart + prevDuration;
+	}
 	currentSlot->duration = current->duration;
 	currentSlot->wait = currentSlot->startTime - current->arrive; 
 	currentSlot->end = currentSlot->startTime + currentSlot->duration;
 	currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+	if (current->arrive > (prevStart + prevDuration)) {
+		*downTime += current->arrive - (prevStart + prevDuration);
+	}
 	prevStart = currentSlot->startTime;
 	prevDuration = currentSlot->duration;
 	
@@ -145,11 +153,18 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 		current = current->next;
 
 		currentSlot->procId = current->id;
-		currentSlot->startTime = prevStart + prevDuration;
+		if ((prevStart + prevDuration) < current->arrive) {
+			currentSlot->startTime = current->arrive;
+		} else {
+			currentSlot->startTime = prevStart + prevDuration;
+		}
 		currentSlot->duration = current->duration;
 		currentSlot->wait = currentSlot->startTime - current->arrive; 
 		currentSlot->end = currentSlot->startTime + currentSlot->duration;
 		currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+		if (current->arrive > (prevStart + prevDuration)) {
+			*downTime += current->arrive - (prevStart + prevDuration);
+		}
 		prevStart = currentSlot->startTime;
 		prevDuration = currentSlot->duration;
 		currentSlot->next = 0;
@@ -272,12 +287,13 @@ int main() {
 	
 	int wait = 0;
 	int turnaround = 0;
+	int downTime = 0;
 	
 	if (strcmp(policy, "fcfs") == 0) {
 		struct cpuSlot* slots;
-		slots = fcfs(rootProcess, quantum);
-		printf("%d ", totalTime(slots));  //for fcfs busy time and total are the same.
-		printf("%d \n", totalTime(slots));
+		slots = fcfs(rootProcess, quantum, &downTime);
+		printf("%d ", totalTime(slots));  
+		printf("%d \n", totalTime(slots) + downTime);
 		int count = 0;
 		while (slots != 0) {
 			printf("%d ", slots->procId);
