@@ -178,11 +178,92 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	
 	return rootSlot;
 }
-void rr(struct Process* root, int quantum) {
+struct cpuSlot* rr(struct Process* root, int quantum, int* downTime) {
 	
 	//set up pointer to traverse list
 	struct Process* current;
 	current = root;
+	
+	struct cpuSlot* rootSlot;
+	struct cpuSlot* currentSlot;
+	rootSlot = malloc(sizeof(struct cpuSlot));
+	rootSlot->next = 0;
+	currentSlot = rootSlot;
+	
+	int prevDuration = 0;
+	int prevStart = 0;
+	
+	// set the root
+	currentSlot->procId = current->id;
+	if ((prevStart + prevDuration) < current->arrive) {
+		currentSlot->startTime = current->arrive;
+	} else {
+		currentSlot->startTime = prevStart + prevDuration;
+	}
+	if (current->duration < quantum) {
+		currentSlot->duration = current->duration;
+	} else {
+		currentSlot->duration = quantum;
+	}
+	currentSlot->wait = currentSlot->startTime - current->arrive;
+	currentSlot->end = currentSlot->startTime + currentSlot->duration;
+	currentSlot->turnaround = (currentSlot->end) - current->arrive;
+	if (current->arrive > (prevStart + prevDuration)) {
+		*downTime += current->arrive - (prevStart + prevDuration);
+	}
+	prevStart = currentSlot->startTime;
+	prevDuration = currentSlot->duration;
+	
+	//now add each node to the list
+	while (current->next != 0) {
+		currentSlot->next = malloc(sizeof(struct cpuSlot));
+		currentSlot = currentSlot->next;
+		current = current->next;
+
+		currentSlot->procId = current->id;
+		if ((prevStart + prevDuration) < current->arrive) {
+			currentSlot->startTime = current->arrive;
+		} else {
+			currentSlot->startTime = prevStart + prevDuration;
+		}
+		if (current->duration < quantum) {
+			currentSlot->duration = current->duration;
+		} else {
+			currentSlot->duration = quantum;
+		}
+		currentSlot->wait = currentSlot->startTime - current->arrive;
+		currentSlot->end = currentSlot->startTime + currentSlot->duration;
+		currentSlot->turnaround = (currentSlot->end) - current->arrive;
+		if (current->arrive > (prevStart + prevDuration)) {
+			*downTime += current->arrive - (prevStart + prevDuration);
+		}
+		prevStart = currentSlot->startTime;
+		prevDuration = currentSlot->duration;
+		currentSlot->next = 0;
+		
+		if (current->duration > quantum) {
+			//we need a new node
+			//save what node we are on so we can get at its values
+			struct Process* location = current;
+			//traverse to end of process list
+			while (current->next != 0) {
+				current = current->next;
+			}
+			//add new node to the list
+			current->next = malloc(sizeof(struct Process));
+			//set new nodes values
+			current = current->next;
+			current->id = location->id;
+			current->arrive = currentSlot->end;
+			current->duration = location->duration - currentSlot->duration;
+			current->priority = location->priority;
+			current->next = 0;
+			//set the current node back to the one we were on.
+			current = location;
+		}
+	}
+	
+	return rootSlot;
 }
 struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 	
@@ -654,7 +735,24 @@ int main() {
 		printf("%f ", (float)turnaround/(float)count);
 		printf("%f \n", (float)wait/(float)count);
 	} else if (strcmp(policy, "rr") == 0) {
-		rr(rootProcess, quantum);
+		struct cpuSlot* slots;
+		slots = rr(rootProcess, quantum, &downTime);
+		printf("%d ", totalTime(slots));
+		printf("%d \n", totalTime(slots) + downTime);
+		int count = 0;
+		while (slots != 0) {
+			printf("%d ", slots->procId);
+			printf("%d ", slots->startTime);
+			printf("%d ", slots->end);
+			printf("%d ", slots->turnaround);
+			turnaround += slots->turnaround;
+			printf( "%d \n", slots->wait);
+			wait += slots->wait;
+			slots = slots->next;
+			count++;
+		}
+		printf("%f ", (float)turnaround/(float)count);
+		printf("%f ", (float)wait/(float)count);
 	} else if (strcmp(policy, "priority_non") == 0) {
 		struct cpuSlot* slots = priority_non(rootProcess, quantum, &downTime);
 		printf("%d ", totalTime(slots));  
