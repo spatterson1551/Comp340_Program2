@@ -1,5 +1,5 @@
-priority_non 2
-0 0 2 12
+priority 2
+0 0 5 12
 1 8 3 6
 2 3 2 8
 3 0 3 0
