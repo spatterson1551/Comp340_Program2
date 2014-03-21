@@ -223,7 +223,7 @@ int main() {
 	// Read the input file and create the list of Process nodes
 	char *policyLine = readLineFromFile(fp);
 	sscanf(policyLine, "%s %d", policy, &quantum);
-	free(policyLine);
+	free(policyLine); policyLine = 0;
 		
 	// Read the list of processes until we see a newline or eof
 	char *nextProcessLine = readLineFromFile(fp);
@@ -257,11 +257,13 @@ int main() {
 		}
 
 		// Read the next line
-		free(nextProcessLine);
+		free(nextProcessLine); nextProcessLine = 0;
 		if(feof(fp) || ferror(fp))
 			break;
 		nextProcessLine = readLineFromFile(fp);
 	}
+	if(nextProcessLine)
+		free(nextProcessLine); nextProcessLine = 0;
 
 	// If there were no processes in the file, proceed no further.
 	if(current == 0)
