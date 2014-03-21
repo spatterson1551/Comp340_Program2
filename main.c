@@ -92,6 +92,15 @@ void priority_non(struct Process* root, int quantum) {
 	//set up pointer to traverse list
 	struct Process* current;
 	current = root;
+
+	//set up list of slots
+	struct cpuSlot* rootSlot;
+	struct cpuSlot* currentSlot;
+	rootSlot = malloc(sizeof(struct cpuSlot));
+	rootSlot->next = 0;
+	currentSlot = rootSlot;
+
+
 }
 void priority(struct Process* root, int quantum) {
 
@@ -126,7 +135,7 @@ int main() {
 		
 	// Read the list of processes until we see a newline or eof
 	char *nextProcessLine = readLineFromFile(fp);
-	while(!feof(fp) && !ferror(fp) && strcmp(nextProcessLine, "\n") != 0)
+	while(strcmp(nextProcessLine, "\n") != 0)
 	{
 		int id, arrive, duration, priority;
 		if(sscanf(nextProcessLine, "%d %d %d %d", &id, &arrive, &duration, &priority) != 4)
@@ -157,7 +166,16 @@ int main() {
 
 		// Read the next line
 		free(nextProcessLine);
+		if(feof(fp) || ferror(fp))
+			break;
 		nextProcessLine = readLineFromFile(fp);
+	}
+
+	// If there were no processes in the file, proceed no further.
+	if(current == 0)
+	{
+		fprintf(stderr, "No processes specified - exiting.\n");
+		exit(1);
 	}
 	
 	//print out the linked list of processes, simply for testing purposes at this point, but
