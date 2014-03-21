@@ -63,10 +63,11 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 	
 	
 	//now add each node to the list
-	do {
+	while (current->next != 0) {
 		currentSlot->next = malloc(sizeof(struct cpuSlot));
 		currentSlot = currentSlot->next;
 		current = current->next;
+
 		currentSlot->procId = current->id;
 		currentSlot->startTime = prevStart + prevDuration;
 		currentSlot->duration = current->duration;
@@ -76,7 +77,7 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 		prevStart = currentSlot->startTime;
 		prevDuration = currentSlot->duration;
 		currentSlot->next = 0;
-	} while (current->next != 0);
+	}
 	
 	return rootSlot;
 }
