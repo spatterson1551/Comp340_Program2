@@ -213,53 +213,78 @@ struct cpuSlot* rr(struct Process* root, int quantum, int* downTime) {
 	}
 	prevStart = currentSlot->startTime;
 	prevDuration = currentSlot->duration;
+	currentSlot->next = 0;
 	
 	//now add each node to the list
-	while (current->next != 0) {
-		currentSlot->next = malloc(sizeof(struct cpuSlot));
-		currentSlot = currentSlot->next;
-		current = current->next;
-
-		currentSlot->procId = current->id;
-		if ((prevStart + prevDuration) < current->arrive) {
-			currentSlot->startTime = current->arrive;
-		} else {
-			currentSlot->startTime = prevStart + prevDuration;
-		}
-		if (current->duration < quantum) {
-			currentSlot->duration = current->duration;
-		} else {
-			currentSlot->duration = quantum;
-		}
-		currentSlot->wait = currentSlot->startTime - current->arrive;
-		currentSlot->end = currentSlot->startTime + currentSlot->duration;
-		currentSlot->turnaround = (currentSlot->end) - current->arrive;
-		if (current->arrive > (prevStart + prevDuration)) {
-			*downTime += current->arrive - (prevStart + prevDuration);
-		}
-		prevStart = currentSlot->startTime;
-		prevDuration = currentSlot->duration;
-		currentSlot->next = 0;
+	if (current->next == 0 && current->duration > quantum) { // this if else is to account for the case that there is only one process and its duration is larger than quantum
 		
-		if (current->duration > quantum) {
-			//we need a new node
-			//save what node we are on so we can get at its values
-			struct Process* location = current;
-			//traverse to end of process list
-			while (current->next != 0) {
-				current = current->next;
+		// only one process exists in the list, and its duration is greater than quantum
+		current->duration -= quantum;
+		while (current->duration > 0) {
+			currentSlot->next = malloc(sizeof(struct cpuSlot));
+			currentSlot = currentSlot->next;
+			currentSlot->procId = current->id;
+			currentSlot->startTime = prevStart + prevDuration;
+			if (current->duration < quantum) {
+				currentSlot->duration = current->duration;
+			} else {
+				currentSlot->duration = quantum;
 			}
-			//add new node to the list
-			current->next = malloc(sizeof(struct Process));
-			//set new nodes values
+			currentSlot->wait = current->arrive;
+			currentSlot->end = currentSlot->startTime + currentSlot->duration;
+			currentSlot->turnaround = (currentSlot->end) - (current->arrive + prevStart + prevDuration);
+			prevStart = currentSlot->startTime;
+			prevDuration = currentSlot->duration;
+			currentSlot->next = 0;
+			current->duration -= quantum;
+		}
+	} else {
+		while (current->next != 0) {
+			currentSlot->next = malloc(sizeof(struct cpuSlot));
+			currentSlot = currentSlot->next;
 			current = current->next;
-			current->id = location->id;
-			current->arrive = currentSlot->end;
-			current->duration = location->duration - currentSlot->duration;
-			current->priority = location->priority;
-			current->next = 0;
-			//set the current node back to the one we were on.
-			current = location;
+
+			currentSlot->procId = current->id;
+			if ((prevStart + prevDuration) < current->arrive) {
+				currentSlot->startTime = current->arrive;
+			} else {
+				currentSlot->startTime = prevStart + prevDuration;
+			}
+			if (current->duration < quantum) {
+				currentSlot->duration = current->duration;
+			} else {
+				currentSlot->duration = quantum;
+			}
+			currentSlot->wait = currentSlot->startTime - current->arrive;
+			currentSlot->end = currentSlot->startTime + currentSlot->duration;
+			currentSlot->turnaround = (currentSlot->end) - current->arrive;
+			if (current->arrive > (prevStart + prevDuration)) {
+				*downTime += current->arrive - (prevStart + prevDuration);
+			}
+			prevStart = currentSlot->startTime;
+			prevDuration = currentSlot->duration;
+			currentSlot->next = 0;
+			
+			if (current->duration > quantum) {
+				//we need a new node
+				//save what node we are on so we can get at its values
+				struct Process* location = current;
+				//traverse to end of process list
+				while (current->next != 0) {
+					current = current->next;
+				}
+				//add new node to the list
+				current->next = malloc(sizeof(struct Process));
+				//set new nodes values
+				current = current->next;
+				current->id = location->id;
+				current->arrive = currentSlot->end;
+				current->duration = location->duration - currentSlot->duration;
+				current->priority = location->priority;
+				current->next = 0;
+				//set the current node back to the one we were on.
+				current = location;
+			}
 		}
 	}
 	
