@@ -3,7 +3,7 @@
 all: scheduler
 
 clean:
-	rm *.o
+	rm *.o *.exe
 
 scheduler: main.o
 	gcc -o scheduler main.o -std=c99
