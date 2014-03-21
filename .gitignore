@@ -1,3 +1,10 @@
+##### gcc
+*.o
+*.s
+*.i
+# Also ignore compiled binaries (from Cygwin at least - on Linux you can't tell from the file name)
+*.exe
+
 #################
 ## Eclipse
 #################
