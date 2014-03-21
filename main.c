@@ -11,9 +11,19 @@ struct Process {
 	struct Process *next;
 };
 
-int totalTime(struct Process* root) {
+struct cpuSlot {
+	int procId;
+	int startTime;
+	int duration;
+	int wait;
+	int end;
+	int turnaround;
+	struct cpuSlot *next;
+};
+
+int totalTime(struct cpuSlot* root) {
 	
-	struct Process* current;
+	struct cpuSlot* current;
 	int total = 0;
 	current = root;
 	while (current != 0) {
@@ -24,12 +34,51 @@ int totalTime(struct Process* root) {
 	return total;
 }
 
-void fcfs(struct Process* root, int quantum) {
+struct cpuSlot* fcfs(struct Process* root, int quantum) {
 	
 	//set up pointer to traverse list
 	struct Process* current;
 	current = root;
 	
+	//set up list of slots
+	struct cpuSlot* rootSlot;
+	struct cpuSlot* currentSlot;
+	rootSlot = malloc(sizeof(struct cpuSlot));
+	rootSlot->next = 0;
+	currentSlot = rootSlot;
+	
+	int prevDuration = 0;
+	int prevStart = 0;
+	
+	
+	// set the root
+	currentSlot->procId = current->id;
+	currentSlot->startTime = prevStart + prevDuration;
+	currentSlot->duration = current->duration;
+	currentSlot->wait = currentSlot->startTime - current->arrive; 
+	currentSlot->end = currentSlot->startTime + currentSlot->duration;
+	currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+	prevStart = currentSlot->startTime;
+	prevDuration = currentSlot->duration;
+	
+	
+	//now add each node to the list
+	do {
+		currentSlot->next = malloc(sizeof(struct cpuSlot));
+		currentSlot = currentSlot->next;
+		current = current->next;
+		currentSlot->procId = current->id;
+		currentSlot->startTime = prevStart + prevDuration;
+		currentSlot->duration = current->duration;
+		currentSlot->wait = currentSlot->startTime - current->arrive; 
+		currentSlot->end = currentSlot->startTime + currentSlot->duration;
+		currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+		prevStart = currentSlot->startTime;
+		prevDuration = currentSlot->duration;
+		currentSlot->next = 0;
+	} while (current->next != 0);
+	
+	return rootSlot;
 }
 void rr(struct Process* root, int quantum) {
 	
@@ -108,9 +157,28 @@ int main() {
 		current = current->next;
 	}
 	
+	int wait = 0;
+	int turnaround = 0;
 	
 	if (strcmp(policy, "fcfs") == 0) {
-		fcfs(rootProcess, quantum);
+		struct cpuSlot* slots;
+		slots = fcfs(rootProcess, quantum);
+		printf("%d ", totalTime(slots));  //for fcfs busy time and total are the same.
+		printf("%d \n", totalTime(slots));
+		int count = 0;
+		while (slots != 0) {
+			printf("%d ", slots->procId);
+			printf( "%d ", slots->startTime);
+			printf( "%d ", slots->end);
+			printf( "%d ", slots->turnaround);
+			turnaround += slots->turnaround;
+			printf( "%d \n", slots->wait);
+			wait += slots->wait;
+			slots = slots->next;
+			count++;
+		}
+		printf("%f ", (float)turnaround/(float)count);
+		printf("%f \n", (float)wait/(float)count);
 	} else if (strcmp(policy, "rr") == 0) {
 		rr(rootProcess, quantum);
 	} else if (strcmp(policy, "priority_non") == 0) {
