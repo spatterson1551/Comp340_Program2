@@ -43,7 +43,7 @@ int totalTime(struct cpuSlot* root) {
 }
 
 struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
-	
+
 	//set up pointer to traverse list
 	struct Process* current;
 	
@@ -84,7 +84,7 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	current = &sortedListHead;
 	while(true)
 	{
-		// Traverse the list to find the process with the lowest arrival time that we haven't yet selected (put into place in the sorted list)
+		// Traverse the list to find the least node that we haven't yet selected (put into place in the sorted list)
 		struct Process_sort *least = 0;
 		
 		currentSort = sortHead;
@@ -178,21 +178,175 @@ void rr(struct Process* root, int quantum) {
 	struct Process* current;
 	current = root;
 }
-void priority_non(struct Process* root, int quantum) {
-
-	//set up pointer to traverse list
-	struct Process* current;
-	current = root;
-
-	//set up list of slots
-	struct cpuSlot* rootSlot;
-	struct cpuSlot* currentSlot;
-	rootSlot = malloc(sizeof(struct cpuSlot));
-	rootSlot->next = 0;
-	currentSlot = rootSlot;
-
-	// Sort the list of processes by priority first, arrival time second, and PID third (all lowest-first)
+struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 	
+	// Sort the list of processes by priority first, arrival time second, and PID third (all lowest-first)
+	// (note: they're already sorted by PID, so we don't need to sort explicitly on that)
+
+	// Create a Process_sort linked list to keep track of the processs during sorting
+	struct Process *current = root;
+	struct Process_sort *sortHead = malloc(sizeof(struct Process_sort));
+	sortHead->proc = root;
+	sortHead->selected = false;
+	sortHead->next = 0;
+	struct Process_sort *currentSort = sortHead;
+	while(current->next != 0)
+	{
+		current = current->next;
+
+		currentSort->next = malloc(sizeof(struct Process_sort));
+		currentSort = currentSort->next;
+
+		currentSort->proc = current;
+		currentSort->selected = false;
+		currentSort->next = 0;
+	}
+
+	// Sort the processes using an insertion sort
+	struct Process sortedListHead; // dummy node at the head of the new sorted list to make things easier
+	current = &sortedListHead;
+	while(true)
+	{
+		// Traverse the list to find the least node that we haven't yet selected (put into place in the sorted list)
+		struct Process_sort *least = 0;
+		
+		currentSort = sortHead;
+		while(currentSort != 0)
+		{
+			if(!currentSort->selected) // we haven't yet put this element into place in the sorted list
+			{
+				if(least == 0 || 
+					(currentSort->proc->priority < least->proc->priority) ||
+					(currentSort->proc->priority == least->proc->priority && currentSort->proc->arrive < least->proc->arrive)
+				  ) // we've found a new least
+				{
+					// Unselect the old least (if we have one)
+					if(least)
+						least->selected = false;
+					least = currentSort;
+					// Select the new one
+					least->selected = true;
+				}
+			}
+
+			currentSort = currentSort->next;
+		}
+
+		if(least) // If we found an unselected node
+		{
+			// Add the just-found next-least node to the new, sorted list
+			// (note that in the process, we're destroying the original non-sorted list - that's
+			// OK, since we have pointers to all nodes saved in the Process_sort list and are thus
+			// going to reconstruct the full list in the sorting process)
+			current->next = least->proc;
+			current->next->next = 0;
+			current = current->next;
+		}
+		else // all nodes are selected, so sorting is done
+			break;
+	}
+	// Point root to the head of the new sorted list
+	root = sortedListHead.next;
+
+	// TODO: deallocate Process_sort list
+	
+
+	// The processes are now sorted; proceed with scheduling.
+
+	// Make a copy of the process list for use within this function
+	// (we'll be removing nodes from it, and we don't want to mess with the original...well, OK, we messed with it by sorting it, but that's OK since
+	// the primary concern here is leaving it intact enough that main() isn't left with an invalid pointer)
+	// The copy will have one more node than the original, namely, the root is a dummy - this will work better with how I've structured my scheduling loop.
+	struct Process *copyRoot = malloc(sizeof(struct Process));
+	copyRoot->next = 0;
+	{ // Yes, the anonymous block is intentional - I wanted to put both of the next lines in the for() initializer, but it didn't like the comma operator there,
+		// so I'm using the block instead to make sure p and q go out of scope (for clarity since I'm using different p and q loop pointers later).
+		struct Process *p = root;
+		struct Process *q = copyRoot;
+		for(; p != 0; p = p->next, q = q->next)
+		{
+			struct Process *newNode = malloc(sizeof(struct Process));
+
+			newNode->id = p->id;
+			newNode->arrive = p->arrive;
+			newNode->duration = p->duration;
+			newNode->priority = p->priority;
+
+			newNode->next = 0;
+			q->next = newNode;
+		}
+	}
+
+	// Set up list of slots
+	// (root is a dummy node, to work better with how I've structured my loop; it'll be removed at the end for consistency with the rest of the program)
+	struct cpuSlot *rootSlot = malloc(sizeof(struct cpuSlot));
+	rootSlot->next = 0;
+	struct cpuSlot *pSlot = rootSlot;
+
+	// Each loop iteration schedules one process and runs it to completion (since this is nonpreemptive)
+	int startTime = 0;
+	while(copyRoot->next) // copyRoot->next will be 0 (all nodes removed) when there are no more processes to schedule
+	{
+		// Find the first process in the list that's arrived at or before the current time (startTime).
+		// Since it's already sorted accordingly, this will be the one we want to schedule next.
+		// Once we've found it, we'll remove it from the list so we don't encounter it again.
+		bool scheduledAProcess = false;
+		{ // anonymous block is intentional, as above
+			struct Process *p = copyRoot->next;
+			struct Process *prev = copyRoot;
+			for(; p != 0; prev = p, p = p->next)
+			{
+				if(p->arrive <= startTime)
+				{
+					// Schedule this process - construct a cpuSlot node and add it to the slots list
+					struct cpuSlot *newSlot = malloc(sizeof(struct cpuSlot));
+					newSlot->next = 0;
+
+					newSlot->procId = p->id;
+					newSlot->startTime = startTime;
+					newSlot->duration = startTime + p->duration;
+					newSlot->wait = startTime - p->arrive;
+					newSlot->end = startTime + p->duration;
+					newSlot->turnaround = newSlot->wait + p->duration;
+
+					startTime += p->duration;
+
+					// Add the new slot to the slots list
+					pSlot->next = newSlot;
+					pSlot = pSlot->next;
+
+					// Remove the process from the list of unscheduled processes
+					prev->next = p->next;
+					free(p);
+					p = prev;
+
+					scheduledAProcess = true;
+					break;
+				}
+			}
+		}
+
+		if(!scheduledAProcess) // there were no remaining processes that have arrived yet, but there might be more down the line
+		{
+			// Advance one second (idle)
+			startTime++;
+			(*downTime)++;
+		}
+	}
+
+	// Deallocate the copy we made of the process list
+	for(struct Process *p = copyRoot; p != 0; )
+	{
+		struct Process *toDelete = p;
+		p = p->next;
+		free(toDelete);
+	}
+	copyRoot = 0;
+
+	// Delete the dummy node from the head of the slot list, and return the dummy-less list
+	pSlot = rootSlot->next;
+	free(rootSlot);
+	return pSlot;
 }
 void priority(struct Process* root, int quantum) {
 
@@ -292,8 +446,7 @@ int main() {
 	int downTime = 0;
 	
 	if (strcmp(policy, "fcfs") == 0) {
-		struct cpuSlot* slots;
-		slots = fcfs(rootProcess, quantum, &downTime);
+		struct cpuSlot* slots = fcfs(rootProcess, quantum, &downTime);
 		printf("%d ", totalTime(slots));  
 		printf("%d \n", totalTime(slots) + downTime);
 		int count = 0;
@@ -313,14 +466,30 @@ int main() {
 	} else if (strcmp(policy, "rr") == 0) {
 		rr(rootProcess, quantum);
 	} else if (strcmp(policy, "priority_non") == 0) {
-		priority_non(rootProcess, quantum);
+		struct cpuSlot* slots = priority_non(rootProcess, quantum, &downTime);
+		printf("%d ", totalTime(slots));  
+		printf("%d \n", totalTime(slots) + downTime);
+		int count = 0;
+		while (slots != 0) {
+			printf("%d ", slots->procId);
+			printf( "%d ", slots->startTime);
+			printf( "%d ", slots->end);
+			printf( "%d ", slots->turnaround);
+			turnaround += slots->turnaround;
+			printf( "%d \n", slots->wait);
+			wait += slots->wait;
+			slots = slots->next;
+			count++;
+		}
+		printf("%f ", (float)turnaround/(float)count);
+		printf("%f \n", (float)wait/(float)count);
 	} else if (strcmp(policy, "priority") == 0) {
 		priority(rootProcess, quantum);
 	} else {
 		printf("The schedule policy in the input file is invalid\n");
 	}
 
-	// TODO: traverse the process list and free memory
+	// TODO: traverse the process and CPU-slot lists and free memory
 	
 	return 0;
 }
