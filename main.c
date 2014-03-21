@@ -122,8 +122,14 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	// Point root to the head of the new sorted list
 	root = sortedListHead.next;
 
-	// TODO: deallocate Process_sort list
-	
+	// Deallocate the Process_sort list (no longer needed since sorting is complete)
+	for(struct Process_sort *p = sortHead; p->next != 0; )
+	{
+		struct Process_sort *toDelete = p->next;
+		p->next = p->next->next;
+		free(toDelete);
+	}
+	free(sortHead); sortHead = 0;
 
 	// The processes are now sorted; proceed with scheduling.
 	current = root;
@@ -248,8 +254,14 @@ struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 	// Point root to the head of the new sorted list
 	root = sortedListHead.next;
 
-	// TODO: deallocate Process_sort list
-	
+	// Deallocate the Process_sort list (no longer needed since sorting is complete)
+	for(struct Process_sort *p = sortHead; p->next != 0; )
+	{
+		struct Process_sort *toDelete = p->next;
+		p->next = p->next->next;
+		free(toDelete);
+	}
+	free(sortHead); sortHead = 0;
 
 	// The processes are now sorted; proceed with scheduling.
 
