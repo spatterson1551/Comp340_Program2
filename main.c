@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 struct Process {
 	int id;
@@ -9,6 +10,13 @@ struct Process {
 	int duration;
 	int priority;
 	struct Process *next;
+};
+
+// Used to keep track of processes during sorting
+struct Process_sort {
+	struct Process *proc;
+	bool selected;
+	struct Process_sort *next;
 };
 
 struct cpuSlot {
@@ -38,7 +46,6 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 	
 	//set up pointer to traverse list
 	struct Process* current;
-	current = root;
 	
 	//set up list of slots
 	struct cpuSlot* rootSlot;
@@ -49,8 +56,77 @@ struct cpuSlot* fcfs(struct Process* root, int quantum) {
 	
 	int prevDuration = 0;
 	int prevStart = 0;
+
+	// Sort the list of processes by arrival time (with PID as second criteria, but we don't need
+	// to handle that explicitly since the input is guaranteed to be ordered by increasing PID).
+
+	// Create a Process_sort linked list to keep track of the processs during sorting
+	current = root;
+	struct Process_sort *sortHead = malloc(sizeof(struct Process_sort));
+	sortHead->proc = root;
+	sortHead->selected = false;
+	sortHead->next = 0;
+	struct Process_sort *currentSort = sortHead;
+	while(current->next != 0)
+	{
+		current = current->next;
+
+		currentSort->next = malloc(sizeof(struct Process_sort));
+		currentSort = currentSort->next;
+
+		currentSort->proc = current;
+		currentSort->selected = false;
+		currentSort->next = 0;
+	}
+
+	// Sort the processes using an insertion sort
+	struct Process sortedListHead; // dummy node at the head of the new sorted list to make things easier
+	current = &sortedListHead;
+	while(true)
+	{
+		// Traverse the list to find the process with the lowest arrival time that we haven't yet selected (put into place in the sorted list)
+		struct Process_sort *least = 0;
+		
+		currentSort = sortHead;
+		while(currentSort != 0)
+		{
+			if(!currentSort->selected) // we haven't yet put this element into place in the sorted list
+			{
+				if(least == 0 || currentSort->proc->arrive < least->proc->arrive) // we've found a new least
+				{
+					// Unselect the old least (if we have one)
+					if(least)
+						least->selected = false;
+					least = currentSort;
+					// Select the new one
+					least->selected = true;
+				}
+			}
+
+			currentSort = currentSort->next;
+		}
+
+		if(least) // If we found an unselected node
+		{
+			// Add the just-found next-least node to the new, sorted list
+			// (note that in the process, we're destroying the original non-sorted list - that's
+			// OK, since we have pointers to all nodes saved in the Process_sort list and are thus
+			// going to reconstruct the full list in the sorting process)
+			current->next = least->proc;
+			current->next->next = 0;
+			current = current->next;
+		}
+		else // all nodes are selected, so sorting is done
+			break;
+	}
+	// Point root to the head of the new sorted list
+	root = sortedListHead.next;
+
+	// TODO: deallocate Process_sort list
 	
-	
+	// The processes are now sorted; proceed with scheduling.
+	current = root;
+
 	// set the root
 	currentSlot->procId = current->id;
 	currentSlot->startTime = prevStart + prevDuration;
@@ -100,7 +176,8 @@ void priority_non(struct Process* root, int quantum) {
 	rootSlot->next = 0;
 	currentSlot = rootSlot;
 
-
+	// Sort the list of processes by priority first, arrival time second, and PID third (all lowest-first)
+	
 }
 void priority(struct Process* root, int quantum) {
 
