@@ -6,7 +6,7 @@ clean:
 	rm *.o *.exe
 
 scheduler: main.o
-	gcc -o scheduler main.o -std=c99
+	gcc -o scheduler main.o -std=c99 -ggdb
 
 main.o: main.c
-	gcc -c main.c -std=c99
+	gcc -c main.c -std=c99 -ggdb

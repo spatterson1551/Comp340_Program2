@@ -99,17 +99,16 @@ void priority(struct Process* root, int quantum) {
 	current = root;
 }
 
-int main() {
+// Reads an arbitrarily long line from the file and returns it as a malloc-allocated buffer (caller is responsible for freeing it)
+// There should not be any possibility of string buffer overflow, since the buffer is dynamically resized as necessary (think vector).
+char* readLineFromFile(FILE *fp);
 
-	
+int main() {
 	//init the root node of the Process list
-	struct Process* rootProcess;
-	rootProcess = malloc(sizeof(struct Process));
-	rootProcess->next = 0;
+	struct Process* rootProcess = 0;
 	
 	//init the Process pointer which will traverse the list
-	struct Process* current;
-	current = rootProcess;
+	struct Process* current = 0;
 	
 	//init variables to hold information about process list
 	char policy[15];
@@ -119,28 +118,46 @@ int main() {
 	FILE *fp;
 	fp = fopen("input.txt", "r");
 	
-	//read in the policy and quantum from the file
-	fscanf(fp, "%s", policy);
-	fscanf(fp, "%d", &quantum);
-	
-	//now build the linked list of processes by going through the file
-	//set the root
-	fscanf(fp, "%d", &current->id);
-	fscanf(fp, "%d", &current->arrive);
-	fscanf(fp, "%d", &current->duration);
-	fscanf(fp, "%d", &current->priority);
-	
-	//now set all the following Process nodes
-	//NOTE: only works when there is no \n character after the last line in the txt file
-	do { 
-		current->next = malloc( sizeof(struct Process) ); 
-		current = current->next;
-		fscanf(fp, "%d", &current->id);
-		fscanf(fp, "%d", &current->arrive);
-		fscanf(fp, "%d", &current->duration);
-		fscanf(fp, "%d", &current->priority);
-		current->next = 0;
-	} while(!feof(fp));
+	// Read the input file and create the list of Process nodes
+	char *policyLine = readLineFromFile(fp);
+	sscanf(policyLine, "%s %d", policy, &quantum);
+	free(policyLine);
+		
+	// Read the list of processes until we see a newline or eof
+	char *nextProcessLine = readLineFromFile(fp);
+	while(!feof(fp) && !ferror(fp) && strcmp(nextProcessLine, "\n") != 0)
+	{
+		int id, arrive, duration, priority;
+		if(sscanf(nextProcessLine, "%d %d %d %d", &id, &arrive, &duration, &priority) != 4)
+		{
+			// If sscanf returned something other than 4, we didn't get a complete line - skip this process
+			fprintf(stderr, "Error: process line incomplete, skipping it.\n");
+		}
+		else
+		{
+			// We got a complete line - build a Process struct and add it to the list
+			if(current == 0) // this is the root node
+			{
+				rootProcess = malloc(sizeof(struct Process));
+				current = rootProcess;
+			}
+			else
+			{
+				current->next = malloc(sizeof(struct Process));
+				current = current->next;
+			}
+
+			current->id = id;
+			current->arrive = arrive;
+			current->duration = duration;
+			current->priority = priority;
+			current->next = 0;
+		}
+
+		// Read the next line
+		free(nextProcessLine);
+		nextProcessLine = readLineFromFile(fp);
+	}
 	
 	//print out the linked list of processes, simply for testing purposes at this point, but
 	//it could be nice just to give the user some more feedback anyways
@@ -188,8 +205,26 @@ int main() {
 	} else {
 		printf("The schedule policy in the input file is invalid\n");
 	}
+
+	// TODO: traverse the process list and free memory
 	
 	return 0;
 }
 
+char* readLineFromFile(FILE *fp)
+{
+	const int BUFFER_SIZE = 255;
+	char *buffer = malloc(BUFFER_SIZE * sizeof(char));
 
+	int timesRead = 1;
+	fgets(buffer, BUFFER_SIZE, fp);
+	while(strlen(buffer) == ((BUFFER_SIZE-1) * timesRead)) // we didn't get the whole line
+	{
+		int continuePoint = (BUFFER_SIZE-1) * timesRead;
+		buffer = realloc(buffer, (continuePoint + BUFFER_SIZE) * sizeof(char));
+		fgets(buffer + continuePoint, BUFFER_SIZE, fp);
+		timesRead++;
+	}
+
+	return buffer;
+}
