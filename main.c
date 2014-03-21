@@ -42,6 +42,11 @@ int totalTime(struct cpuSlot* root) {
 	return total;
 }
 
+// Takes a list of CPU slots broken down per-quantum, and computes the sums on a per-process basis.
+// Also requires the process list (for arrival times), and the number of processes involved in scheduling.
+// Returns the sums in another cpuSlot list.
+struct cpuSlot* postprocessSchedulingData(struct cpuSlot *slotList, struct Process *procList, int numProcesses);
+
 struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 
 	//set up pointer to traverse list
@@ -61,6 +66,8 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	// to handle that explicitly since the input is guaranteed to be ordered by increasing PID).
 
 	// Create a Process_sort linked list to keep track of the processs during sorting
+	// (we'll take a total of the # of processes while we're at it)
+	int numProcesses = 1;
 	current = root;
 	struct Process_sort *sortHead = malloc(sizeof(struct Process_sort));
 	sortHead->proc = root;
@@ -77,6 +84,8 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 		currentSort->proc = current;
 		currentSort->selected = false;
 		currentSort->next = 0;
+
+		numProcesses++;
 	}
 
 	// Sort the processes using an insertion sort
@@ -144,7 +153,7 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 	currentSlot->duration = current->duration;
 	currentSlot->wait = currentSlot->startTime - current->arrive; 
 	currentSlot->end = currentSlot->startTime + currentSlot->duration;
-	currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+	currentSlot->turnaround = currentSlot->end - current->arrive;
 	if (current->arrive > (prevStart + prevDuration)) {
 		*downTime += current->arrive - (prevStart + prevDuration);
 	}
@@ -167,7 +176,7 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 		currentSlot->duration = current->duration;
 		currentSlot->wait = currentSlot->startTime - current->arrive; 
 		currentSlot->end = currentSlot->startTime + currentSlot->duration;
-		currentSlot->turnaround = (currentSlot->startTime + currentSlot->duration) - current->arrive;
+		currentSlot->turnaround = currentSlot->end - current->arrive;
 		if (current->arrive > (prevStart + prevDuration)) {
 			*downTime += current->arrive - (prevStart + prevDuration);
 		}
@@ -176,7 +185,17 @@ struct cpuSlot* fcfs(struct Process* root, int quantum, int* downTime) {
 		currentSlot->next = 0;
 	}
 	
-	return rootSlot;
+	// Postprocess the slot list to turn it into a per-process summary, sorted by PID
+	struct cpuSlot *summaryList = postprocessSchedulingData(rootSlot, root, numProcesses);
+
+	// Deallocate the unprocessed slot list, and return the processed one
+	for(struct cpuSlot *p = rootSlot; p != 0; )
+	{
+		struct cpuSlot *toDelete = p;
+		p = p->next;
+		free(toDelete);
+	}
+	return summaryList;
 }
 void rr(struct Process* root, int quantum) {
 	
@@ -190,6 +209,8 @@ struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 	// (note: they're already sorted by PID, so we don't need to sort explicitly on that)
 
 	// Create a Process_sort linked list to keep track of the processs during sorting
+	// (we'll take a total of the # of processes while we're at it)
+	int numProcesses = 1;
 	struct Process *current = root;
 	struct Process_sort *sortHead = malloc(sizeof(struct Process_sort));
 	sortHead->proc = root;
@@ -206,6 +227,8 @@ struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 		currentSort->proc = current;
 		currentSort->selected = false;
 		currentSort->next = 0;
+
+		numProcesses++;
 	}
 
 	// Sort the processes using an insertion sort
@@ -355,10 +378,17 @@ struct cpuSlot* priority_non(struct Process* root, int quantum, int* downTime) {
 	}
 	copyRoot = 0;
 
-	// Delete the dummy node from the head of the slot list, and return the dummy-less list
-	pSlot = rootSlot->next;
-	free(rootSlot);
-	return pSlot;
+	// Postprocess the slot list to turn it into a per-process summary, sorted by PID
+	struct cpuSlot *summaryList = postprocessSchedulingData(rootSlot->next, root, numProcesses);
+
+	// Deallocate the unprocessed slot list, and return the processed one
+	for(struct cpuSlot *p = rootSlot; p != 0; )
+	{
+		struct cpuSlot *toDelete = p;
+		p = p->next;
+		free(toDelete);
+	}
+	return summaryList;
 }
 struct cpuSlot* priority(struct Process* root, int quantum, int* downTime) {
 
@@ -366,6 +396,8 @@ struct cpuSlot* priority(struct Process* root, int quantum, int* downTime) {
 	// (note: they're already sorted by PID, so we don't need to sort explicitly on that)
 
 	// Create a Process_sort linked list to keep track of the processs during sorting
+	// (we'll take a total of the # of processes while we're at it)
+	int numProcesses = 1;
 	struct Process *current = root;
 	struct Process_sort *sortHead = malloc(sizeof(struct Process_sort));
 	sortHead->proc = root;
@@ -382,6 +414,8 @@ struct cpuSlot* priority(struct Process* root, int quantum, int* downTime) {
 		currentSort->proc = current;
 		currentSort->selected = false;
 		currentSort->next = 0;
+
+		numProcesses++;
 	}
 
 	// Sort the processes using an insertion sort
@@ -496,7 +530,7 @@ struct cpuSlot* priority(struct Process* root, int quantum, int* downTime) {
 						newSlot->duration = quantum;
 					else
 						newSlot->duration = p->duration;
-					newSlot->wait = 0; // wait is meaningless for preemptive slots; we'll need to calculate it per-process at the end
+					newSlot->wait = 0; // wait doesn't really make sense for individual quantums; we'll need to calculate it per-process at the end
 					newSlot->end = startTime + newSlot->duration;
 					newSlot->turnaround = 0; // as with wait, this will need to be calculated on a per-process basis at the end
 
@@ -539,14 +573,22 @@ struct cpuSlot* priority(struct Process* root, int quantum, int* downTime) {
 	}
 	copyRoot = 0;
 
-	// Delete the dummy node from the head of the slot list, and return the dummy-less list
-	pSlot = rootSlot->next;
-	free(rootSlot);
-	return pSlot;
+	// Postprocess the slot list to turn it into a per-process summary, sorted by PID
+	struct cpuSlot *summaryList = postprocessSchedulingData(rootSlot->next, root, numProcesses);
+
+	// Deallocate the unprocessed slot list, and return the processed one
+	for(struct cpuSlot *p = rootSlot; p != 0; )
+	{
+		struct cpuSlot *toDelete = p;
+		p = p->next;
+		free(toDelete);
+	}
+	return summaryList;
 }
 
-// Reads an arbitrarily long line from the file and returns it as a malloc-allocated buffer (caller is responsible for freeing it)
-// There should not be any possibility of string buffer overflow, since the buffer is dynamically resized as necessary (think vector).
+// Reads an arbitrarily long line from a file and returns it as a malloc-allocated buffer (caller is responsible for freeing it)
+// There should not be any possibility of string buffer overflow, since the buffer is dynamically resized as necessary (think std::vector).
+// (Imported from Ethan's Program 1 code.)
 char* readLineFromFile(FILE *fp);
 
 int main() {
@@ -698,6 +740,64 @@ int main() {
 	// TODO: traverse the process and CPU-slot lists and free memory
 	
 	return 0;
+}
+
+struct cpuSlot* postprocessSchedulingData(struct cpuSlot *slotList, struct Process *procList, int numProcesses)
+{
+	// Create a cpuSlot list to store the processed results - as in both of the priority scheduling functions,
+	// the head node is a dummy, to simplify the main loop below, which will be removed before return.
+	struct cpuSlot *resultHead = malloc(sizeof(struct cpuSlot));
+	resultHead->next = 0;
+	struct cpuSlot *pResult = resultHead;
+
+	// For each process, create a cpuSlot struct which will contain its aggregate totals, and
+	// traverse the slot list to compute these totals; then add it to the result list.
+	for(int i = 0; i < numProcesses; i++)
+	{
+		struct cpuSlot *totals = malloc(sizeof(struct cpuSlot));
+		totals->next = 0;
+
+		// Note: wait and turnaround are computed at the end based on start, end, and (total) duration for the process as a whole.
+		totals->procId = i;
+		totals->startTime = 0;
+		totals->duration = 0;
+		totals->end = 0;
+
+		for(struct cpuSlot *p = slotList; p != 0; p = p->next)
+		{
+			if(p->procId == i)
+			{
+				if(totals->duration == 0) // this is the first quantum for this process
+					totals->startTime = p->startTime;
+				totals->duration += p->duration;
+				totals->end = p->end; // this overwrites what was set for end on previous iterations, which is correct since we want the end from the last quantum
+			}
+		}
+
+		// Find the process in the process list and extract its arrival time (needed to compute wait time and turnaround)
+		int arrivalTime;
+		for(struct Process *p = procList; p != 0; p = p->next)
+		{
+			if(p->id == i)
+			{
+				arrivalTime = p->arrive;
+				break;
+			}
+		}
+
+		// Compute wait and turnaround
+		totals->wait = totals->end - totals->duration - arrivalTime;
+		totals->turnaround = totals->end - arrivalTime;
+
+		// Add totals to the result list
+		pResult->next = totals;
+		pResult = pResult->next;
+	}
+
+	// Remove the dummy node at the head of the result list, and return the list
+	pResult = resultHead->next;
+	free(resultHead);
+	return pResult;
 }
 
 char* readLineFromFile(FILE *fp)
