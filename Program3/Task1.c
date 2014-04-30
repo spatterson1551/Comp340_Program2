@@ -5,8 +5,8 @@ CLASS: COMP 340
 DATE: 4/30/13
 DESCRIPTION: Test program to see demonstrate
 memory allocation when different sized processes are called
-COMPILE: gcc -o Task1 Task1.c
-RUN: free; ./Task1
+COMPILE: "gcc -o Task1 Task1.c"
+RUN: "free; ./Task1"
 
 *****************/
 

@@ -5,9 +5,8 @@ CLASS: COMP 340
 DATE: 4/30/13
 DESCRIPTION: Test file to show what happens in memory
 when the parent forks 3 children.
-NOTE: This is only to be run from another program using execv
-COMPILE: gcc -o execvTest execvTest.c
-RUN: free; ./execvTest
+COMPILE: "gcc -o Task2a Task2a.c"
+RUN: "free; ./Task2a"   (free; is called first to show memory before the program itself is run)
 
 *****************/
 
