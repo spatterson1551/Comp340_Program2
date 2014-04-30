@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MEM_THRESHOLD 0.80f // fraction of system memory usage we want to watch for
+#define MEM_THRESHOLD 0.75f // fraction of system memory usage we want to watch for
 #define CHECK_FREQUENCY 1 // number of seconds to wait between checking system memory usage
 
 // Check periodically to see if system memory usage exceeds a defined threshold; when it goes over that threshold, print a message to the console reflecting this.
