@@ -1,3 +1,15 @@
+/*****************
+
+AUTHORS: Steve Patterson, Ethan Johnson
+CLASS: COMP 340
+DATE: 4/30/13
+DESCRIPTION: Monitors system memory usage and notifies the user when it passes
+	a defined threshold (75% by default).
+COMPILE: "gcc -o task3 task3.c -std=gnu99"
+RUN: "./task3"
+
+*****************/
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>

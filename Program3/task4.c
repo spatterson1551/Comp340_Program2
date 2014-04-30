@@ -1,3 +1,15 @@
+/*****************
+
+AUTHORS: Steve Patterson, Ethan Johnson
+CLASS: COMP 340
+DATE: 4/30/13
+DESCRIPTION: Monitors system memory usage and, when it exceeds a specified threshold
+	(75% by default), kills user processes until it's within the threshold.
+COMPILE: "gcc -o task4 task4.c -std=gnu99"
+RUN: "./task4"
+
+*****************/
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
