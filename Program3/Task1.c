@@ -15,6 +15,7 @@ RUN: free; ./Task1
 #include <stdlib.h>
 #include <unistd.h>
 
+
 int main() {
 
     pid_t pid[2];
@@ -50,6 +51,7 @@ int main() {
 		}
 	}
 	
+
 	
     
     return 0;

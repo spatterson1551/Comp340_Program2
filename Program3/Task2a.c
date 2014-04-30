@@ -31,7 +31,7 @@ int main() {
 		return;
     } else { //this is the parent
 		wait(NULL); // wait for first child to terminate
-		if (pid[1] = fork() == -1) {   //now fork the second child
+		if ((pid[1] = fork()) == -1) {   //now fork the second child
 			perror("fork error");
 		} else if (pid[1] == 0) { //this is child 2
 			printf("After child2 process is created\n");
@@ -39,7 +39,7 @@ int main() {
 			return;
 		} else { // this is the parent
 			wait(NULL); // wait for the second child to terminate
-			if (pid[2] = fork() == -1) {  //now fork the third child
+			if ((pid[2] = fork()) == -1) {  //now fork the third child
 				perror("fork error");
 			} else if (pid[2] == 0) { // this is child 3
 				printf("After child3 process is created\n");
