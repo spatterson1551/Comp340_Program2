@@ -5,9 +5,8 @@ CLASS: COMP 340
 DATE: 4/30/13
 DESCRIPTION: Test file to show what happens in memory
 when the parent forks 3 children.
-NOTE: This is only to be run from another program using execv
-COMPILE: gcc -o execvTest execvTest.c
-RUN: free; ./execvTest
+COMPILE: "gcc -o Task2a Task2a.c"
+RUN: "free; ./Task2a"   (free; is called first to show memory before the program itself is run)
 
 *****************/
 
@@ -31,7 +30,7 @@ int main() {
 		return;
     } else { //this is the parent
 		wait(NULL); // wait for first child to terminate
-		if (pid[1] = fork() == -1) {   //now fork the second child
+		if ((pid[1] = fork()) == -1) {   //now fork the second child
 			perror("fork error");
 		} else if (pid[1] == 0) { //this is child 2
 			printf("After child2 process is created\n");
@@ -39,7 +38,7 @@ int main() {
 			return;
 		} else { // this is the parent
 			wait(NULL); // wait for the second child to terminate
-			if (pid[2] = fork() == -1) {  //now fork the third child
+			if ((pid[2] = fork()) == -1) {  //now fork the third child
 				perror("fork error");
 			} else if (pid[2] == 0) { // this is child 3
 				printf("After child3 process is created\n");

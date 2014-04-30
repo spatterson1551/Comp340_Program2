@@ -7,8 +7,8 @@ DESCRIPTION: Program which creates a child that calls
 execv to run another process. Used to demonstrate how 
 memory is allocated for the child and the process it calls.
 NOTE: THIS IS ONLY TO BE RUN AFTER execvTest.c HAS BEEN COMPILED
-COMPILE: gcc -o Task2b Task2b.c
-RUN: free; ./Task2b    (free; is called first to show memory before the program itself is run)
+COMPILE: "gcc -o Task2b Task2b.c"
+RUN: "free; ./Task2b"    (free; is called first to show memory before the program itself is run)
 
 *****************/
 

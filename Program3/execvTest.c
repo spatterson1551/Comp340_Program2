@@ -7,8 +7,8 @@ DESCRIPTION: Test process to be called
 by another process using execv in order to 
 demonstrate memory usage
 NOTE: This is only to be run from another program using execv
-COMPILE: gcc -o execvTest execvTest.c
-RUN: free; ./execvTest
+COMPILE: "gcc -o execvTest execvTest.c"
+RUN: "./execvTest", see NOTE above
 
 *****************/
 
